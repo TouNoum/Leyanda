@@ -1,4 +1,8 @@
 # Leyanda
+Docker compose:
+```
+docker-compose up
+```
 
 Build image docker:
 ```
