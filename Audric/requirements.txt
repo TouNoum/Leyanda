@@ -1,0 +1,5 @@
+tensorboard
+scipy
+seaborn
+scikit-learn
+tqdm
