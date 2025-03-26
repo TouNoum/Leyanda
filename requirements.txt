@@ -1,0 +1,10 @@
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+imageio
+opencv-python
+tqdm
+notebook
+tensorboard
