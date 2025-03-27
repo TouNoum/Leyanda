@@ -176,7 +176,6 @@ cython_debug/
 .pypirc
 
 tom/
-Audric/
-Florian/
-Fabien/
-tensorflow-tutorials/
+audric/
+florian/
+fabien/
