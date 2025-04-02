@@ -8,3 +8,4 @@ opencv-python
 tqdm
 notebook
 tensorboard
+tensorflow_datasets
