@@ -9,3 +9,5 @@ tqdm
 notebook
 tensorboard
 tensorflow_datasets
+wandb
+python-dotenv

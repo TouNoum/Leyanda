@@ -4,7 +4,7 @@ FROM tensorflow/tensorflow:2.17.0-gpu-jupyter
 WORKDIR /tf
 
 # Copier les dépendances
-COPY requirements.txt /tf/requirements.txt
+COPY requirements.txt /tf/projet/requirements.txt
 
 # Installer les outils système utiles pour le traitement d’images et Git
 RUN apt-get update && apt-get install -y \
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les dépendances Python
-RUN pip install --no-cache-dir -r /tf/requirements.txt
+RUN pip install --no-cache-dir -r /tf/projet/requirements.txt
 
 # Exposer les ports pour Jupyter et TensorBoard
 EXPOSE 8888
