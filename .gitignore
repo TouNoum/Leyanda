@@ -132,7 +132,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+# .env
 .venv
 env/
 venv/
@@ -183,3 +183,4 @@ florian/
 fabien/
 Livrable 1/logs/*
 Livrable 1/checkpoints/*
+wandb/
