@@ -11,3 +11,4 @@ tensorboard
 tensorflow_datasets
 wandb
 python-dotenv
+nltk
