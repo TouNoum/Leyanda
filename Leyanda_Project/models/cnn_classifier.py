@@ -172,5 +172,3 @@ def add_class_weights(train_ds):
     class_weights_dict = dict(enumerate(class_weights))
     print("Class weights :", class_weights_dict)
     return class_weights_dict
-#%%
-
