@@ -11,7 +11,7 @@ def dataset_assembly(raw_data_path, subfolders, batch_size, img_height, img_widt
     Returns:
     - dataset: A TensorFlow dataset object.
     """
-    print(f"--\nAssembling dataset--")
+    print(f"\n--Assembling dataset--")
     try:
         dataset = tf.keras.utils.image_dataset_from_directory(
             raw_data_path,
@@ -58,7 +58,7 @@ def dataset_split(dataset, train_split=0.8, val_split=0.1, batch_size=1000, seed
     - val_ds: Validation dataset.
     - test_ds: Test dataset.
     """
-    print(f"--\nMaking dataset split--")
+    print(f"\n--Making dataset split--")
     dataset_size = tf.data.experimental.cardinality(dataset).numpy()  # Faster than len(dataset)
     print(f"Dataset size: {dataset_size*batch_size}")
     train_size = int(train_split * dataset_size)

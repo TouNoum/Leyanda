@@ -13,7 +13,7 @@ def visualize_class_samples(dataset, class_names, samples_per_class=5):
     - class_names: List of class names
     - samples_per_class: Number of samples to display per class
     """
-    print("--\nVisualizing samples--")
+    print("\n--Visualizing samples--")
 
     plt.figure(figsize=(15, 10))
 
@@ -47,7 +47,7 @@ def visualize_class_distribution(dataset, class_names):
     - dataset: TensorFlow dataset
     - class_names: List of class names
     """
-    print("--\nVisualizing class distribution--")
+    print("\n--Visualizing class distribution--")
 
     num_classes = len(class_names)
     label_counts = np.zeros(num_classes, dtype=int)

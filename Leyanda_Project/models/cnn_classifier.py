@@ -22,7 +22,7 @@ def create_model(model_name, input_shape=(180, 180, 3), class_names=None, train_
     Returns:
     - Model ready for training
     """
-    print(f"--Creating model: {model_name}--")
+    print(f"\n--Creating model: {model_name}--")
 
     num_classes=len(class_names)
 
