@@ -13,6 +13,8 @@ def visualize_class_samples(dataset, class_names, samples_per_class=5):
     - class_names: List of class names
     - samples_per_class: Number of samples to display per class
     """
+    print("--\nVisualizing samples--")
+
     plt.figure(figsize=(15, 10))
 
     class_samples = {class_name: [] for class_name in class_names}
@@ -45,7 +47,7 @@ def visualize_class_distribution(dataset, class_names):
     - dataset: TensorFlow dataset
     - class_names: List of class names
     """
-    print("--Computing class distribution--")
+    print("--\nVisualizing class distribution--")
 
     num_classes = len(class_names)
     label_counts = np.zeros(num_classes, dtype=int)
@@ -56,9 +58,9 @@ def visualize_class_distribution(dataset, class_names):
 
     plt.figure(figsize=(12, 6))
     plt.bar(class_names, label_counts)
-    plt.xlabel('Classe')
-    plt.ylabel('Nombre d’images')
-    plt.title('Répartition des classes')
+    plt.xlabel('Classes')
+    plt.ylabel('Number of images')
+    plt.title('Classes distribution')
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()

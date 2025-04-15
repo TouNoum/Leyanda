@@ -11,7 +11,7 @@ def convert_to_binary_dataset_structure(source_path, target_binary_class, output
     """
     Optimized conversion to binary dataset structure using multithreading.
     """
-    print(f"--Converting dataset to binary format (Optimized)--")
+    print(f"\n--Converting dataset to binary format--")
 
     if not os.path.isdir(source_path):
         raise ValueError(f"Source path '{source_path}' does not exist or is not a directory.")
@@ -52,7 +52,7 @@ def convert_to_binary_dataset_structure(source_path, target_binary_class, output
         try:
             shutil.copyfile(src, dst)
         except Exception as e:
-            return (src, str(e))
+            return src, str(e)
         return None
 
     errors = []

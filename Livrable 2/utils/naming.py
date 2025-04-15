@@ -13,10 +13,9 @@ def generate_model_name(project_name, model_arch, target_class=None, transfer_le
     Returns:
     - str: Standardized model name
     """
-    components = []
+    print("--\nGenerating model name--")
 
-    components.append(project_name)
-    components.append(model_arch)
+    components = [project_name, model_arch]
 
     if target_class:
         components.append(f"bin_{target_class}")

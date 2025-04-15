@@ -14,7 +14,7 @@ from collections import Counter
 ## CALLBACK FUNCTIONS
 class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
     """
-    Confusion matrix callback.
+    Custom Keras callback to log confusion matrix and table to WandB.
     """
     def __init__(self, val_data, class_names):
         super().__init__()
@@ -60,11 +60,12 @@ def create_callbacks(model_name="default_model", tensorboard=True, early_stoppin
     - early_stopping: If True, adds EarlyStopping callback
     - model_checkpoint: If True, adds ModelCheckpoint callback
     - conf_matrix: If True, adds ConfusionMatrixCallback
-    - val_data: Validation data for ConfusionMatrixCallback
-    - class_names: Class names for ConfusionMatrixCallback
+    - val_data: Validation data for confusion matrix callback
+    - class_names: Class names for confusion matrix callback
     Returns:
     - List of callbacks
     """
+    print(f"\n--Creating callbacks--")
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     callbacks = []
 

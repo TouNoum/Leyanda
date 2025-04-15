@@ -15,7 +15,7 @@ def data_formats_fixes(raw_data_path):
     Parameters:
     - raw_data_path: Path to the raw data folder.
     """
-    print(f"--Starting data format fixes--")
+    print(f"\n--Fixing raw data formats--")
 
     stats = {
         "processed": 0,
