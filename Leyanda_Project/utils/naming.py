@@ -13,7 +13,7 @@ def generate_model_name(project_name, model_arch, target_class=None, transfer_le
     Returns:
     - str: Standardized model name
     """
-    print("--\nGenerating model name--")
+    print("\n--Generating model name--")
 
     components = [project_name, model_arch]
 
@@ -41,6 +41,8 @@ def generate_model_name(project_name, model_arch, target_class=None, transfer_le
         components.append("fine_tuning")
 
     model_name = "_".join(components)
+
+    print(f"Generated model name: {model_name}")
 
     return model_name
 
