@@ -81,7 +81,7 @@ def check_and_compile_model(model, model_name, target_binary_class_name):
     Returns:
     - The compiled model
     """
-    print(f"\n--Compiling {model_name}--")
+    print(f"Compiling {model_name}...")
     if target_binary_class_name:
         loss = "binary_crossentropy"
         print(f"Using binary classification loss: {loss}")
@@ -158,7 +158,7 @@ def add_class_weights(train_ds):
     Returns:
     - class_weights_dict: Dictionary mapping class indices to weights
     """
-    print("\n--Computing class weights--")
+    print("Computing class weights...")
     y_train = []
 
     for _, labels in train_ds:

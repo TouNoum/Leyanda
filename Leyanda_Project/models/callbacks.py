@@ -65,7 +65,7 @@ def create_callbacks(model_name="default_model", tensorboard=True, early_stoppin
     Returns:
     - List of callbacks
     """
-    print(f"\n--Creating callbacks--")
+    print(f"Creating callbacks...")
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     callbacks = []
 

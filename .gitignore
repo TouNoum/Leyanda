@@ -185,3 +185,4 @@ fabien/
 Livrable 1/logs/*
 Livrable 1/checkpoints/*
 wandb/
+.env
