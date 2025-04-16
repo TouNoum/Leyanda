@@ -10,15 +10,19 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras.preprocessing import image
 
 
-def make_inference(model, class_names):
+def make_inference(model, class_names, target_binary_class_name, img_path=None):
     """
     Perform inference on a sample image using the provided model and class names.
     Parameters:
     - model: Keras model for inference
     - class_names: List of class names for the dataset
+    - target_binary_class_name: Name of the target binary class for binary classification
     """
     print("\n--Making inference--")
-    img_path = '../Dataset/Photo/photo_0001.jpg'
+
+    if img_path is None:
+        print("No image path provided, skipping inference.")
+        return
 
     print("Model input shape:", model.input_shape)
 
@@ -31,13 +35,15 @@ def make_inference(model, class_names):
     img_array = np.expand_dims(img_array, axis=0)
     print("Image shape before prediction:", img_array.shape)
 
-
     # Prediction
     predictions = model.predict(img_array)
     print("Raw prediction:", predictions)
 
-    # Binary model
-    predicted_class_index = int(predictions[0][0] > 0.5)
+    if target_binary_class_name:
+        predicted_class_index = int(predictions[0][0] > 0.5) # Binary classification
+    else:
+        predicted_class_index = np.argmax(predictions[0]) # Multi-class classification
+
     predicted_class_name = class_names[predicted_class_index]
     print(f"Predicted class: {predicted_class_name}")
 
