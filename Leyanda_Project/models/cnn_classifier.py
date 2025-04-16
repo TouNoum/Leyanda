@@ -123,7 +123,7 @@ def train_model(model, model_name, train_ds, val_ds, epochs=10, save_path=None, 
             train_ds,
             validation_data=val_ds,
             epochs=epochs,
-            verbose=1,
+            verbose=2,
             callbacks=callbacks,
             class_weight = add_class_weights(train_ds)
         )
@@ -134,7 +134,7 @@ def train_model(model, model_name, train_ds, val_ds, epochs=10, save_path=None, 
             validation_data=val_ds,
             epochs=epochs,
             callbacks=callbacks,
-            verbose=1
+            verbose=2
         )
 
     if save_path:
