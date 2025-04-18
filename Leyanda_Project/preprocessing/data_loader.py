@@ -2,12 +2,16 @@
 import tensorflow as tf
 
 # Dataset assembly
-def dataset_assembly(raw_data_path, subfolders, batch_size, img_height, img_width, seed):
+def dataset_assembly(raw_data_path, subfolders, batch_size, img_height=180, img_width=180, seed=123):
     """
     Assembles a dataset from a folder structure.
     Parameters:
     - raw_data_path: Path to the raw data folder.
     - subfolders: List of subfolders to include in the dataset.
+    - batch_size: Size of the batches of data.
+    - img_height: Height of the images.
+    - img_width: Width of the images.
+    - seed: Random seed for shuffling.
     Returns:
     - dataset: A TensorFlow dataset object.
     """
@@ -45,7 +49,7 @@ def dataset_assembly(raw_data_path, subfolders, batch_size, img_height, img_widt
 
 
 # Dataset split
-def dataset_split(dataset, train_split=0.8, val_split=0.1, batch_size=1000, seed=123):
+def dataset_split(dataset, train_split=0.8, val_split=0.1, batch_size=1000):
     """
     Splits a dataset into training, validation, and test sets.
     Parameters:
