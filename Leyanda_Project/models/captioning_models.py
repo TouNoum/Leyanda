@@ -1,3 +1,8 @@
+# Imports
+import os
+import sys
+sys.path.insert(0, "/tf/projet") # Add the project root directory to the Python path (docker hosting)
+
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -8,22 +13,7 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
 from tensorflow.keras.applications.inception_v3 import InceptionV3
-
-
-def preprocess_image_path(img_path, target_size=(299, 299)):
-    """
-    Load and preprocess an image from path.
-    Parameters:
-    - img_path : Path to the image
-    - target_size : Target size for resizing, by default (299, 299)
-    Returns:
-    - img : Preprocessed image
-    """
-    img = tf.io.read_file(img_path)
-    img = tf.image.decode_jpeg(img, channels=3)
-    img = tf.image.resize(img, target_size)
-    img = preprocess_input(img)
-    return img
+from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
 
 
 def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):

@@ -96,6 +96,22 @@ def preprocess_caption(caption, tokenizer, max_length=30):
     return padded_sequence
 
 
+def preprocess_image_path(img_path, target_size=(299, 299)):
+    """
+    Load and preprocess an image from path.
+    Parameters:
+    - img_path : Path to the image
+    - target_size : Target size for resizing, by default (299, 299)
+    Returns:
+    - img : Preprocessed image
+    """
+    img = tf.io.read_file(img_path)
+    img = tf.image.decode_jpeg(img, channels=3)
+    img = tf.image.resize(img, target_size)
+    img = preprocess_input(img)
+    return img
+
+
 def create_dataset_generator(image_paths, captions, tokenizer, max_length=30, batch_size=32, shuffle=True):
     """
     Create a TensorFlow data generator that yields batches of preprocessed images and captions.
