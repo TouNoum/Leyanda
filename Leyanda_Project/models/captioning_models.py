@@ -88,95 +88,43 @@ def create_captioning_model(encoder, decoder, max_length):
 
     return captioning_model
 
-def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length, units=256):
+def generate_caption(image_path, model, tokenizer, max_length):
     """
-    Generate a caption for a given image.
+    Generate caption for an image using the trained model directly.
     Parameters:
-    - image_path : Image file path
-    - encoder_model : Encoder model for feature extraction
-    - decoder_model : Decoder model for caption generation
-    - tokenizer : Tokenizer used to convert words to indices and vice versa
-    - max_length : Maximum length of generated caption
+    - image_path : Path to the image
+    - model : Trained model
+    - tokenizer : Tokenizer used for captions
+    - max_length : Maximum length of captions
     Returns:
-    - str : Generated caption
+    - caption : Generated caption for the image
     """
     img = preprocess_image_path(image_path)
     img = np.expand_dims(img, axis=0)
-    image_features = encoder_model.predict(img)
-    decoder_input = np.zeros((1, 1))
-    decoder_input[0, 0] = tokenizer.word_index['<start>']
-    decoder_h = np.zeros((1, units))
-    decoder_c = np.zeros((1, units))
-    generated_caption = []
+    caption = ['<start>']
 
-    for i in range(max_length):
-        predictions, decoder_h, decoder_c = decoder_model.predict(
-            [decoder_input, image_features, decoder_h, decoder_c]
-        )
-        predicted_id = np.argmax(predictions[0, 0])
-        predicted_word = None
-        idx_to_word = {idx: word for word, idx in tokenizer.word_index.items()}
-        for word, index in tokenizer.word_index.items():
-            if index == predicted_id:
-                predicted_word = idx_to_word.get(predicted_id)
-                break
+    for i in range(max_length - 1):
+        sequence = tokenizer.texts_to_sequences([' '.join(caption)])[0]
+        sequence = pad_sequences([sequence], maxlen=max_length, padding='post')[0]
+        sequence = np.expand_dims(sequence, axis=0)
 
-        if predicted_word == '<end>' or predicted_word is None:
+        pred = model.predict([img, sequence], verbose=0)
+        pred_idx = np.argmax(pred[0, i, :])
+
+        if pred_idx == tokenizer.word_index.get('<end>', 1) or pred_idx == 0:
             break
 
-        if predicted_word not in ['<start>', '<pad>']:
-            generated_caption.append(predicted_word)
+        for word, idx in tokenizer.word_index.items():
+            if idx == pred_idx:
+                caption.append(word)
+                break
 
-        decoder_input[0, 0] = predicted_id
+    caption = caption[1:]
 
-    return ' '.join(generated_caption)
+    if '<end>' in caption:
+        caption = caption[:caption.index('<end>')]
 
-
-def create_inference_model(encoder, decoder, vocab_size, units=256, embedding_dim=256):
-    """
-    Create a model for inference (generating captions for new images).
-    Parameters:
-    - encoder : Encoder model
-    - decoder : Decoder model
-    - vocab_size : Size of the vocabulary
-    - units : Number of LSTM units
-    - embedding_dim : Dimension of the word embeddings
-    Returns:
-    - encoder_model : Encoder model for inference
-    - decoder_model : Decoder model for inference
-    """
-    encoder_model = encoder
-
-    decoder_input = Input(shape=(1,), name='decoder_input')
-    decoder_features_input = Input(shape=(embedding_dim,), name='decoder_features_input')
-    decoder_h_state_input = Input(shape=(units,), name='decoder_h_state_input')
-    decoder_c_state_input = Input(shape=(units,), name='decoder_c_state_input')
-
-    embedding_layer = None
-    lstm_layer = None
-    dense_layer = None
-
-    for layer in decoder.layers:
-        if isinstance(layer, Embedding):
-            embedding_layer = layer
-        elif isinstance(layer, LSTM):
-            lstm_layer = layer
-        elif isinstance(layer, Dense) and layer.units == vocab_size:
-            dense_layer = layer
-
-    decoder_embedding = embedding_layer(decoder_input)
-    decoder_outputs, h_state, c_state = lstm_layer(
-        decoder_embedding,
-        initial_state=[decoder_h_state_input, decoder_c_state_input]
-    )
-    decoder_outputs = dense_layer(decoder_outputs)
-
-    decoder_model = Model(
-        inputs=[decoder_input, decoder_features_input, decoder_h_state_input, decoder_c_state_input],
-        outputs=[decoder_outputs, h_state, c_state]
-    )
-
-    return encoder_model, decoder_model
+    return ' '.join(caption)
 
 
 def loss_function(real, pred):
@@ -219,37 +167,6 @@ def plot_training_history(history):
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-
-def show_example_captions(test_img_paths, test_captions, encoder, decoder, tokenizer, max_length, num_examples=5):
-    """
-    Display example images with their actual and predicted captions.
-    Parameters:
-    - test_img_paths : Paths to test images
-    - test_captions : Actual captions for the test images
-    - encoder : Encoder model
-    - decoder : Decoder model
-    - tokenizer : Tokenizer used for captions
-    - max_length : Maximum length of captions
-    - num_examples : Number of examples to display
-    """
-    encoder_model, decoder_model = create_inference_model(encoder, decoder, max_length, len(tokenizer.word_index) + 1)
-
-    indices = np.random.choice(len(test_img_paths), num_examples, replace=False)
-    plt.figure(figsize=(15, 25))
-
-    for i, idx in enumerate(indices):
-        img_path = test_img_paths[idx]
-        actual_caption = test_captions[idx]
-        predicted_caption = generate_caption(img_path, encoder_model, decoder_model, tokenizer, max_length)
-        plt.subplot(num_examples, 1, i+1)
-        img = plt.imread(img_path)
-        plt.imshow(img)
-        plt.title(f'Actual: {actual_caption}\nPredicted: {predicted_caption}', fontsize=12)
-        plt.axis('off')
 
     plt.tight_layout()
     plt.show()
