@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, "/tf/projet") # Add the project root directory to the Python path (docker hosting)
+
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -8,6 +11,7 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
 from tensorflow.keras.applications.inception_v3 import InceptionV3
+from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
 
 
 def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
@@ -60,7 +64,7 @@ def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
     return decoder
 
 
-def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length):
+def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length, units=256):
     """
     Generate a caption for a given image.
     Parameters:
@@ -69,6 +73,7 @@ def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_le
     - decoder_model : Decoder model for caption generation
     - tokenizer : Tokenizer used to convert words to indices and vice versa
     - max_length : Maximum length of generated caption
+    - units : Number of LSTM units
     Returns:
     - str : Generated caption
     """
@@ -104,13 +109,15 @@ def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_le
 
     return ' '.join(generated_caption)
 
-def create_inference_model(encoder, decoder, vocab_size):
+def create_inference_model(encoder, decoder, vocab_size, units=256, embedding_dim=256):
     """
     Create a model for inference (generating captions for new images).
     Parameters:
     - encoder : Encoder model
     - decoder : Decoder model
     - vocab_size : Size of the vocabulary
+    - units : Number of LSTM units
+    - embedding_dim : Dimension of the word embeddings
     Returns:
     - encoder_model : Encoder model for inference
     - decoder_model : Decoder model for inference
@@ -149,7 +156,7 @@ def create_inference_model(encoder, decoder, vocab_size):
     return encoder_model, decoder_model
 
 
-def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length):
+def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length, units=256):
     """
     Generate a caption for a given image.
     Parameters:
