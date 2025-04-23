@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from keras.models import Sequential
-from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, Input
+from keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Input
 from tensorflow.keras.models import Model
 
 # Load the /path images
@@ -78,7 +78,7 @@ def add_noise(images, noise_factor=0.2):
     return noisy_images
 
 # Create denoising model
-def create_denoising_model(img_height=180, img_width=180):
+def create_denoising_model(img_height=180, img_width=180, max_pooling = False):
     """
     Create a simple model for denoising images
     Parameters:
@@ -92,11 +92,15 @@ def create_denoising_model(img_height=180, img_width=180):
     input_img = Input(shape=(img_height, img_width, 3)) # input image dimensions
 
     x = Conv2D(16, (3, 3), activation='relu', padding='same')(input_img)
+    x = MaxPooling2D((2, 2))(x) if max_pooling else x
     x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2))(x) if max_pooling else x
     x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
     x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x) if max_pooling else x
     x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x) if max_pooling else x
     x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
 
     decoded = Conv2D(3, (3, 3), activation= 'relu', padding='same')(x)
