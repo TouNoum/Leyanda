@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, "/tf/projet") # Add the project root directory to the Python path (docker hosting)
-
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -11,7 +8,22 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
 from tensorflow.keras.applications.inception_v3 import InceptionV3
-from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
+
+
+def preprocess_image_path(img_path, target_size=(299, 299)):
+    """
+    Load and preprocess an image from path.
+    Parameters:
+    - img_path : Path to the image
+    - target_size : Target size for resizing, by default (299, 299)
+    Returns:
+    - img : Preprocessed image
+    """
+    img = tf.io.read_file(img_path)
+    img = tf.image.decode_jpeg(img, channels=3)
+    img = tf.image.resize(img, target_size)
+    img = preprocess_input(img)
+    return img
 
 
 def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
@@ -64,6 +76,28 @@ def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
     return decoder
 
 
+def create_captioning_model(encoder, decoder, max_length):
+    """
+    Create the complete image captioning model by connecting encoder and decoder.
+    Parameters:
+    - encoder : Encoder model
+    - decoder : Decoder model
+    - max_length : Maximum length of captions
+    Returns:
+    - captioning_model : Complete model for image captioning
+    """
+    image_input = Input(shape=(299, 299, 3), name='image_input')
+    caption_input = Input(shape=(max_length,), name='caption_input')
+    image_features = encoder(image_input)
+    caption_output = decoder([image_features, caption_input])
+    captioning_model = Model(
+        inputs=[image_input, caption_input],
+        outputs=caption_output,
+        name='captioning_model'
+    )
+
+    return captioning_model
+
 def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length, units=256):
     """
     Generate a caption for a given image.
@@ -73,31 +107,29 @@ def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_le
     - decoder_model : Decoder model for caption generation
     - tokenizer : Tokenizer used to convert words to indices and vice versa
     - max_length : Maximum length of generated caption
-    - units : Number of LSTM units
     Returns:
     - str : Generated caption
     """
-    idx_to_word = {idx: word for word, idx in tokenizer.word_index.items()}
-
     img = preprocess_image_path(image_path)
     img = np.expand_dims(img, axis=0)
-
-    image_features = encoder_model.predict(img, verbose=0)
-
+    image_features = encoder_model.predict(img)
     decoder_input = np.zeros((1, 1))
     decoder_input[0, 0] = tokenizer.word_index['<start>']
     decoder_h = np.zeros((1, units))
     decoder_c = np.zeros((1, units))
-
     generated_caption = []
 
     for i in range(max_length):
         predictions, decoder_h, decoder_c = decoder_model.predict(
-            [decoder_input, image_features, decoder_h, decoder_c],
-            verbose=0
+            [decoder_input, image_features, decoder_h, decoder_c]
         )
         predicted_id = np.argmax(predictions[0, 0])
-        predicted_word = idx_to_word.get(predicted_id)
+        predicted_word = None
+        idx_to_word = {idx: word for word, idx in tokenizer.word_index.items()}
+        for word, index in tokenizer.word_index.items():
+            if index == predicted_id:
+                predicted_word = idx_to_word.get(predicted_id)
+                break
 
         if predicted_word == '<end>' or predicted_word is None:
             break
@@ -108,6 +140,7 @@ def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_le
         decoder_input[0, 0] = predicted_id
 
     return ' '.join(generated_caption)
+
 
 def create_inference_model(encoder, decoder, vocab_size, units=256, embedding_dim=256):
     """
@@ -154,50 +187,6 @@ def create_inference_model(encoder, decoder, vocab_size, units=256, embedding_di
     )
 
     return encoder_model, decoder_model
-
-
-def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length, units=256):
-    """
-    Generate a caption for a given image.
-    Parameters:
-    - image_path : Image file path
-    - encoder_model : Encoder model for feature extraction
-    - decoder_model : Decoder model for caption generation
-    - tokenizer : Tokenizer used to convert words to indices and vice versa
-    - max_length : Maximum length of generated caption
-    Returns:
-    - str : Generated caption
-    """
-    img = preprocess_image_path(image_path)
-    img = np.expand_dims(img, axis=0)
-    image_features = encoder_model.predict(img)
-    decoder_input = np.zeros((1, 1))
-    decoder_input[0, 0] = tokenizer.word_index['<start>']
-    decoder_h = np.zeros((1, units))
-    decoder_c = np.zeros((1, units))
-    generated_caption = []
-
-    for i in range(max_length):
-        predictions, decoder_h, decoder_c = decoder_model.predict(
-            [decoder_input, image_features, decoder_h, decoder_c]
-        )
-        predicted_id = np.argmax(predictions[0, 0])
-        predicted_word = None
-        idx_to_word = {idx: word for word, idx in tokenizer.word_index.items()}
-        for word, index in tokenizer.word_index.items():
-            if index == predicted_id:
-                predicted_word = idx_to_word.get(predicted_id)
-                break
-
-        if predicted_word == '<end>' or predicted_word is None:
-            break
-
-        if predicted_word not in ['<start>', '<pad>']:
-            generated_caption.append(predicted_word)
-
-        decoder_input[0, 0] = predicted_id
-
-    return ' '.join(generated_caption)
 
 
 def loss_function(real, pred):

@@ -78,22 +78,6 @@ def create_tokenizer(captions, num_words=10000):
     return tokenizer, vocab_size
 
 
-def preprocess_image_path(img_path, target_size=(299, 299)):
-    """
-    Load and preprocess an image from path.
-    Parameters:
-    - img_path : Path to the image
-    - target_size : Target size for resizing, by default (299, 299)
-    Returns:
-    - img : Preprocessed image
-    """
-    img = tf.io.read_file(img_path)
-    img = tf.image.decode_jpeg(img, channels=3)
-    img = tf.image.resize(img, target_size)
-    img = preprocess_input(img)
-    return img
-
-
 def preprocess_caption(caption, tokenizer, max_length=30):
     """
     Preprocess a caption: add tokens, convert to sequence and pad.
