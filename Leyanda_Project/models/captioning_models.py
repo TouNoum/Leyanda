@@ -14,6 +14,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
 
 def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
@@ -170,3 +171,26 @@ def plot_training_history(history):
 
     plt.tight_layout()
     plt.show()
+
+
+def calculate_bleu(references, hypotheses):
+    """
+    Calculate BLEU score for a set of predictions.
+    Parameters:
+    - references : List of reference captions
+    - hypotheses : List of generated captions
+    Returns:
+    - float : Average BLEU score
+=    """
+    smoothing = SmoothingFunction().method1
+    scores = []
+
+    for ref, hyp in zip(references, hypotheses):
+        ref_tokens = ref.lower().split()
+        hyp_tokens = hyp.lower().split()
+        score = sentence_bleu([ref_tokens], hyp_tokens,
+                             weights=(0.25, 0.25, 0.25, 0.25),
+                             smoothing_function=smoothing)
+        scores.append(score)
+
+    return sum(scores)/len(scores) if scores else 0
