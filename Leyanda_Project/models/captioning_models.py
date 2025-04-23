@@ -14,9 +14,10 @@ def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
     """
     Create an image encoder based on InceptionV3 pre-trained model.
     Parameters:
-    - input_shape : tuple
+    - input_shape : Shape of the input images
+    - embedding_dim : Dimension of the output embedding
     Returns:
-    - encoder : Model
+    - encoder : Encoder model
     """
     base_model = InceptionV3(weights='imagenet', include_top=False, input_shape=input_shape)
 
@@ -31,23 +32,16 @@ def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
     return encoder
 
 
-def create_caption_decoder(vocab_size, max_length, embedding_dim, units):
+def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
     """
     Create a decoder model that generates captions from image features.
     Parameters:
-    ----------
-    vocab_size : int
-        Size of the vocabulary
-    max_length : int
-        Maximum length of captions
-    embedding_dim : int
-        Dimension of word embeddings
-    units : int
-        Number of units in LSTM layers
+    - vocab_size : Size of the vocabulary
+    - max_length : Maximum length of captions
+    - embedding_dim : Dimension of the word embeddings
+    - units : Number of LSTM units
     Returns:
-    -------
-    Model
-        Caption decoder model
+    - decoder : Decoder model
     """
     image_features = Input(shape=(embedding_dim,))
     caption_input = Input(shape=(max_length,))
@@ -69,6 +63,14 @@ def create_caption_decoder(vocab_size, max_length, embedding_dim, units):
 def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_length):
     """
     Generate a caption for a given image.
+    Parameters:
+    - image_path : Image file path
+    - encoder_model : Encoder model for feature extraction
+    - decoder_model : Decoder model for caption generation
+    - tokenizer : Tokenizer used to convert words to indices and vice versa
+    - max_length : Maximum length of generated caption
+    Returns:
+    - str : Generated caption
     """
     idx_to_word = {idx: word for word, idx in tokenizer.word_index.items()}
 
@@ -102,25 +104,16 @@ def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_le
 
     return ' '.join(generated_caption)
 
-def create_inference_model(encoder, decoder, max_length, vocab_size):
+def create_inference_model(encoder, decoder, vocab_size):
     """
     Create a model for inference (generating captions for new images).
-
     Parameters:
-    ----------
-    encoder : Model
-        Image encoder model
-    decoder : Model
-        Caption decoder model
-    max_length : int
-        Maximum length of captions
-    vocab_size : int
-        Size of the vocabulary
-
+    - encoder : Encoder model
+    - decoder : Decoder model
+    - vocab_size : Size of the vocabulary
     Returns:
-    -------
-    tuple
-        (encoder_model, decoder_model) - Models for inference
+    - encoder_model : Encoder model for inference
+    - decoder_model : Decoder model for inference
     """
     encoder_model = encoder
 
@@ -160,21 +153,13 @@ def generate_caption(image_path, encoder_model, decoder_model, tokenizer, max_le
     """
     Generate a caption for a given image.
     Parameters:
-    ----------
-    image_path : str
-        Path to the image
-    encoder_model : Model
-        Encoder model for feature extraction
-    decoder_model : Model
-        Decoder model for caption generation
-    tokenizer : Tokenizer
-        Tokenizer used to convert words to indices and vice versa
-    max_length : int
-        Maximum length of generated caption
+    - image_path : Image file path
+    - encoder_model : Encoder model for feature extraction
+    - decoder_model : Decoder model for caption generation
+    - tokenizer : Tokenizer used to convert words to indices and vice versa
+    - max_length : Maximum length of generated caption
     Returns:
-    -------
-    str
-        Generated caption
+    - str : Generated caption
     """
     img = preprocess_image_path(image_path)
     img = np.expand_dims(img, axis=0)
@@ -212,15 +197,10 @@ def loss_function(real, pred):
     """
     Custom loss function for caption generation that masks padding tokens.
     Parameters:
-    ----------
-    real : Tensor
-        Ground truth captions
-    pred : Tensor
-        Predicted captions
+    - real : Actual captions
+    - pred : Predicted captions
     Returns:
-    -------
-    Tensor
-        Masked loss value
+    - tf.Tensor : Computed loss
     """
     mask = tf.math.logical_not(tf.math.equal(real, 0))
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
@@ -234,9 +214,7 @@ def plot_training_history(history):
     """
     Plot the training and validation loss and accuracy.
     Parameters:
-    ----------
-    history : History
-        Training history
+    - history : Training history
     """
     plt.figure(figsize=(12, 5))
 
@@ -264,21 +242,13 @@ def show_example_captions(test_img_paths, test_captions, encoder, decoder, token
     """
     Display example images with their actual and predicted captions.
     Parameters:
-    ----------
-    test_img_paths : list
-        List of image paths
-    test_captions : list
-        List of actual captions
-    encoder : Model
-        Encoder model
-    decoder : Model
-        Decoder model
-    tokenizer : Tokenizer
-        Tokenizer for word conversion
-    max_length : int
-        Maximum caption length
-    num_examples : int, optional
-        Number of examples to show, by default 5
+    - test_img_paths : Paths to test images
+    - test_captions : Actual captions for the test images
+    - encoder : Encoder model
+    - decoder : Decoder model
+    - tokenizer : Tokenizer used for captions
+    - max_length : Maximum length of captions
+    - num_examples : Number of examples to display
     """
     encoder_model, decoder_model = create_inference_model(encoder, decoder, max_length, len(tokenizer.word_index) + 1)
 
