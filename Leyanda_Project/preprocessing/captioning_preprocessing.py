@@ -96,12 +96,12 @@ def preprocess_caption(caption, tokenizer, max_length=30):
     return padded_sequence
 
 
-def preprocess_image_path(img_path, target_size=(299, 299)):
+def preprocess_image_path(img_path, target_size=(180, 180)):
     """
     Load and preprocess an image from path.
     Parameters:
     - img_path : Path to the image
-    - target_size : Target size for resizing, by default (299, 299)
+    - target_size : Target size for resizing, by default (180, 180)
     Returns:
     - img : Preprocessed image
     """
@@ -133,7 +133,7 @@ def create_dataset_generator(image_paths, captions, tokenizer, max_length=30, ba
         for i in indices:
             img_path = image_paths[i]
             caption = captions[i]
-            img = preprocess_image_path(img_path, target_size=(299, 299))
+            img = preprocess_image_path(img_path, target_size=(180, 180))
             cap_input = preprocess_caption(caption, tokenizer, max_length)
             cap_target = cap_input[1:]  # Supprime le token <start>
             cap_target = np.append(cap_target, 0)
@@ -142,7 +142,7 @@ def create_dataset_generator(image_paths, captions, tokenizer, max_length=30, ba
 
     output_signature = (
         (
-            tf.TensorSpec(shape=(299, 299, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(180, 180, 3), dtype=tf.float32),
             tf.TensorSpec(shape=(max_length,), dtype=tf.int32)
         ),
         tf.TensorSpec(shape=(max_length,), dtype=tf.int32)

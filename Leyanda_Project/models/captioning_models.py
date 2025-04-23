@@ -15,7 +15,7 @@ from tensorflow.keras.applications.inception_v3 import InceptionV3
 from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
 
 
-def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
+def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=256):
     """
     Create an image encoder based on InceptionV3 pre-trained model.
     Parameters:
@@ -75,7 +75,7 @@ def create_captioning_model(encoder, decoder, max_length):
     Returns:
     - captioning_model : Complete model for image captioning
     """
-    image_input = Input(shape=(299, 299, 3), name='image_input')
+    image_input = Input(shape=(180, 180, 3), name='image_input')
     caption_input = Input(shape=(max_length,), name='caption_input')
     image_features = encoder(image_input)
     caption_output = decoder([image_features, caption_input])
