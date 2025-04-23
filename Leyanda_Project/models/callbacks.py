@@ -1,4 +1,7 @@
 # Imports
+import sys
+sys.path.insert(0, "/tf/projet") # Add the project root directory to the Python path (docker hosting)
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -8,6 +11,8 @@ import wandb
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import ConfusionMatrixDisplay
 from collections import Counter
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from Leyanda_Project.models.captioning_models import generate_caption
 
 
 class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
@@ -96,3 +101,57 @@ def create_callbacks(model_name="default_model", tensorboard=True, early_stoppin
         callbacks.append(cm_callback)
 
     return callbacks
+
+
+def calculate_bleu(references, hypotheses):
+    """
+    Calculate BLEU score for a set of predictions.
+    Parameters:
+    - references : List of reference captions
+    - hypotheses : List of generated captions
+    Returns:
+    - float : Average BLEU score
+    """
+    smoothing = SmoothingFunction().method1
+    scores = []
+
+    for ref, hyp in zip(references, hypotheses):
+        ref_tokens = ref.lower().split()
+        hyp_tokens = hyp.lower().split()
+        score = sentence_bleu([ref_tokens], hyp_tokens,
+                             weights=(0.25, 0.25, 0.25, 0.25),
+                             smoothing_function=smoothing)
+        scores.append(score)
+
+    return sum(scores)/len(scores) if scores else 0
+
+
+class BLEUCallback(tf.keras.callbacks.Callback):
+    """Custom Keras callback to calculate BLEU score and save the best model."""
+    def __init__(self, val_images, val_captions, tokenizer, max_length, model_save_path):
+        super().__init__()
+        self.val_images = val_images[:100]
+        self.val_captions = val_captions[:100]
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.best_bleu = -1
+        self.model_save_path = model_save_path
+
+    def on_epoch_end(self, epoch, logs=None):
+        predictions = []
+
+        for img_path in self.val_images:
+            pred = generate_caption(img_path, self.model, self.tokenizer, self.max_length)
+            predictions.append(pred)
+
+        bleu = calculate_bleu(self.val_captions, predictions)
+        print(f"\nEpoch {epoch+1}: BLEU = {bleu:.4f}")
+        wandb.log({"bleu_score": bleu})
+
+        if bleu > self.best_bleu:
+            print(f"BLEU up from {self.best_bleu:.4f} to {bleu:.4f}. Saving model.")
+            self.best_bleu = bleu
+            self.model.save(os.path.join(
+                self.model_save_path,
+                f"best_bleu_model_{epoch+1}.keras"
+            ))
