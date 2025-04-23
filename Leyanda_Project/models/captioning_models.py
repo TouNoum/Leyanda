@@ -126,7 +126,7 @@ def generate_caption(image_path, model, tokenizer, max_length):
     return ' '.join(caption)
 
 
-def loss_function(real, pred):
+def basic_loss(real, pred):
     """
     Custom loss function for caption generation that masks padding tokens.
     Parameters:
@@ -143,9 +143,17 @@ def loss_function(real, pred):
     return tf.reduce_mean(loss_)
 
 
-def semantic_loss(y_true, y_pred):
-    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred)
-    semantic_bonus = tf.reduce_mean(tf.nn.softmax(y_pred), axis=-1)
+def semantic_loss(real, pred):
+    """
+    Semantic loss function that penalizes the model for generating captions with low semantic meaning.
+    Parameters:
+    - real : Actual captions
+    - pred : Predicted captions
+    Returns:
+    - tf.Tensor : Computed loss
+    """
+    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(real, pred)
+    semantic_bonus = tf.reduce_mean(tf.nn.softmax(pred), axis=-1)
     return cross_entropy - 0.1 * semantic_bonus
 
 
