@@ -10,8 +10,6 @@ from sklearn.metrics import ConfusionMatrixDisplay
 from collections import Counter
 
 
-
-## CALLBACK FUNCTIONS
 class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
     """
     Custom Keras callback to log confusion matrix and table to WandB.
@@ -50,7 +48,7 @@ class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
             table.add_data(self.class_names[true], self.class_names[pred], count)
         wandb.log({"conf_mat_table": table})
 
-# Callback creation
+
 def create_callbacks(model_name="default_model", tensorboard=True, early_stopping=True, model_checkpoint=True, conf_matrix=False, val_data=None, class_names=None):
     """
     Create a list of callbacks for model training.

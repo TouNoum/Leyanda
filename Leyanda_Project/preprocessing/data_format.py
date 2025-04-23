@@ -1,9 +1,8 @@
-# Imports
 import os
 from PIL import Image
 from tqdm.notebook import tqdm
 
-# Data format fixes
+
 def data_formats_fixes(raw_data_path):
     """
     Walks through a directory to detect and remove problematic image files.

@@ -1,7 +1,6 @@
-# Imports
 import tensorflow as tf
 
-# Dataset assembly
+
 def dataset_assembly(raw_data_path, subfolders, batch_size, img_height=180, img_width=180, seed=123):
     """
     Assembles a dataset from a folder structure.
@@ -48,7 +47,7 @@ def dataset_assembly(raw_data_path, subfolders, batch_size, img_height=180, img_
         print(f"Error creating dataset: {e}")
 
 
-# Dataset split
+
 def dataset_split(dataset, train_split=0.8, val_split=0.1, batch_size=1000):
     """
     Splits a dataset into training, validation, and test sets.

@@ -6,7 +6,7 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Input
 from tensorflow.keras.models import Model
 
-# Load the /path images
+
 def load_clear_images(raw_data_path, img_height=180, img_width=180, test_split=0.1):
     """
     Assemble a dataset from the Dataset folder
@@ -30,7 +30,7 @@ def load_clear_images(raw_data_path, img_height=180, img_width=180, test_split=0
 
     return images_train, images_test
 
-# Image normalization
+
 def normalize_image(images_train, images_test):
     """
     Normalize the images using mean and standard deviation
@@ -47,7 +47,7 @@ def normalize_image(images_train, images_test):
 
     return x_train, x_test
 
-# Visualization
+
 def visualize_data(X, n=10):
     """
     Visualize clear data
@@ -63,7 +63,7 @@ def visualize_data(X, n=10):
         ax.get_yaxis().set_visible(False)
     plt.show()
 
-# Add noise to the images
+
 def add_noise(images, noise_factor=0.2):
     """
     Add noise to the images
@@ -77,7 +77,7 @@ def add_noise(images, noise_factor=0.2):
     noisy_images = np.clip(noisy_images, 0., 1.)
     return noisy_images
 
-# Create denoising model
+
 def create_denoising_model(img_height=180, img_width=180, max_pooling = False):
     """
     Create a simple model for denoising images
@@ -111,7 +111,7 @@ def create_denoising_model(img_height=180, img_width=180, max_pooling = False):
 
     return autoencoder
 
-# Train denoising model
+
 def train_denoising_model(model, x_train_noisy, x_train, x_test_noisy, x_test, batch_size=128, nb_epochs=50):
     """
     Train the denoising model
@@ -135,7 +135,7 @@ def train_denoising_model(model, x_train_noisy, x_train, x_test_noisy, x_test, b
                     verbose=2)
     return history
 
-# Plot training history
+
 def plot_denoising_training_history(history):
     """
     Plot the training history of the denoising model
@@ -147,7 +147,7 @@ def plot_denoising_training_history(history):
     plt.plot(history.history['val_accuracy'], label='test')
     plt.legend()
 
-# Compare original and denoised images
+
 def compare_denoised_images(x_test, decoded_imgs, x_test_noisy):
     """
     Compare original and denoised images
@@ -158,13 +158,13 @@ def compare_denoised_images(x_test, decoded_imgs, x_test_noisy):
     """
     fig, axes = plt.subplots(1, 3, figsize=(6, 3))
     axes[0].imshow(x_test[3].squeeze(), vmin=0, vmax=1)
-    axes[0].set_title("Image originale")
+    axes[0].set_title("Original image")
     axes[0].axis("off")
     axes[1].imshow(decoded_imgs[3].squeeze(), vmin=0, vmax=1)
-    axes[1].set_title("Image décodée")
+    axes[1].set_title("Decoded image")
     axes[1].axis("off")
     axes[2].imshow(x_test_noisy[3].squeeze(), vmin=0, vmax=1)
-    axes[2].set_title("Image bruitée")
+    axes[2].set_title("Noisy image")
     axes[2].axis("off")
     plt.tight_layout()
     plt.show()

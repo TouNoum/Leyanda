@@ -1,4 +1,3 @@
-# Imports
 import os
 import numpy as np
 import tensorflow as tf
@@ -8,7 +7,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras.preprocessing import image
 
-# Model creation
+
 def create_model(model_name, input_shape=(180, 180, 3), class_names=None, train_transfer_model=False, transfer_learning=False, target_binary_class_name=None):
     """
     Creates an image classification model with customizable architecture.
@@ -70,7 +69,7 @@ def create_model(model_name, input_shape=(180, 180, 3), class_names=None, train_
 
     return model
 
-# Model compilation
+
 def check_and_compile_model(model, model_name, target_binary_class_name):
     """
     Check if the model is compiled, compile it with default settings if not.
@@ -97,7 +96,7 @@ def check_and_compile_model(model, model_name, target_binary_class_name):
 
     return model
 
-# Model training
+
 def train_model(model, model_name, train_ds, val_ds, epochs=10, save_path=None, class_weight=False, target_binary_class_name=None, callbacks=None, wandb=None):
     """
     Train a single model and optionally save it.
@@ -149,7 +148,7 @@ def train_model(model, model_name, train_ds, val_ds, epochs=10, save_path=None, 
             wandb.log_artifact(artifact)
     return model
 
-# Class weights
+
 def add_class_weights(train_ds):
     """
     Compute class weights for imbalanced datasets.

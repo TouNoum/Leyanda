@@ -1,4 +1,3 @@
-# Imports
 import os
 import shutil
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -6,10 +5,17 @@ from tqdm.notebook import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tensorflow.keras.preprocessing import image
 
-# Convert a dataset with multiple classes into a binary dataset structure
+
 def convert_to_binary_dataset_structure(source_path, target_binary_class, output_path=None, max_workers=8):
     """
     Optimized conversion to binary dataset structure using multithreading.
+    Parameters:
+    - source_path (str): Path to the source dataset directory
+    - target_binary_class (str): Name of the target binary class
+    - output_path (str, optional): Path to save the binary dataset
+    - max_workers (int, optional): Number of threads to use for copying files
+    Returns:
+    - output_path (str): Path to the created binary dataset
     """
     print(f"\n--Converting dataset to binary format--")
 
@@ -71,4 +77,3 @@ def convert_to_binary_dataset_structure(source_path, target_binary_class, output
     print(f"Binary dataset created in: {output_path}")
     print(f"Classes: {target_binary_class}, not_{target_binary_class}")
     return output_path
-#%%
