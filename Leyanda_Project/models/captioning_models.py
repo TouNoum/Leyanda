@@ -143,6 +143,12 @@ def loss_function(real, pred):
     return tf.reduce_mean(loss_)
 
 
+def semantic_loss(y_true, y_pred):
+    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred)
+    semantic_bonus = tf.reduce_mean(tf.nn.softmax(y_pred), axis=-1)
+    return cross_entropy - 0.1 * semantic_bonus
+
+
 def plot_training_history(history):
     """
     Plot the training and validation loss and accuracy.
