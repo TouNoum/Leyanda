@@ -15,7 +15,7 @@ from tensorflow.keras.applications.inception_v3 import InceptionV3
 from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
 
 
-def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
+def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=256):
     """
     Create an image encoder based on InceptionV3 pre-trained model.
     Parameters:
@@ -37,7 +37,7 @@ def create_image_encoder(input_shape=(299, 299, 3), embedding_dim=256):
     return encoder
 
 
-def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
+def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
     """
     Create a decoder model that generates captions from image features.
     Parameters:
@@ -58,7 +58,7 @@ def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
     c_initial = Dense(units, activation='relu', name='c_initializer')(image_features)
     lstm = LSTM(units, return_sequences=True)(embedding, initial_state=[h_initial, c_initial])
 
-    dropout = Dropout(0.3)(lstm)
+    dropout = Dropout(dropout_rate)(lstm)
     output = Dense(vocab_size, activation='softmax')(dropout)
     decoder = Model(inputs=[image_features, caption_input], outputs=output)
 
@@ -75,7 +75,7 @@ def create_captioning_model(encoder, decoder, max_length):
     Returns:
     - captioning_model : Complete model for image captioning
     """
-    image_input = Input(shape=(299, 299, 3), name='image_input')
+    image_input = Input(shape=(180, 180, 3), name='image_input')
     caption_input = Input(shape=(max_length,), name='caption_input')
     image_features = encoder(image_input)
     caption_output = decoder([image_features, caption_input])
@@ -126,7 +126,7 @@ def generate_caption(image_path, model, tokenizer, max_length):
     return ' '.join(caption)
 
 
-def loss_function(real, pred):
+def basic_loss(real, pred):
     """
     Custom loss function for caption generation that masks padding tokens.
     Parameters:
@@ -141,6 +141,20 @@ def loss_function(real, pred):
     mask = tf.cast(mask, dtype=loss_.dtype)
     loss_ *= mask
     return tf.reduce_mean(loss_)
+
+
+def semantic_loss(real, pred):
+    """
+    Semantic loss function that penalizes the model for generating captions with low semantic meaning.
+    Parameters:
+    - real : Actual captions
+    - pred : Predicted captions
+    Returns:
+    - tf.Tensor : Computed loss
+    """
+    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(real, pred)
+    semantic_bonus = tf.reduce_mean(tf.nn.softmax(pred), axis=-1)
+    return cross_entropy - 0.1 * semantic_bonus
 
 
 def plot_training_history(history):
