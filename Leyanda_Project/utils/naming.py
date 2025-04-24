@@ -71,8 +71,6 @@ def generate_captioning_model_name(
     """
     Generate a standardized name for image captioning models.
     """
-    print("\n--Generating captioning model name--")
-
     components = [project_name, "caption"]
 
     if attention:
