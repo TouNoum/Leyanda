@@ -1,6 +1,7 @@
 import json
 import os
 import numpy as np
+from tqdm import tqdm  
 import tensorflow as tf
 from tensorflow.keras.applications.inception_v3 import preprocess_input
 from tensorflow.keras.preprocessing.text import Tokenizer
@@ -11,16 +12,10 @@ from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 
 
+
 def load_coco_dataset(images_folder, annotations_folder, annotation_file="captions_train2017.json"):
     """
-    Load the COCO dataset with images and their captions.
-    Parameters:
-    - images_folder : Path to the folder containing images
-    - annotations_folder : Path to the folder containing annotations
-    - annotation_file : Name of the annotation file, by default "captions_train2017.json"
-    Returns:
-    - image_paths : List of image paths
-    - captions : List of corresponding captions
+    Load the COCO dataset with a progress bar and optimized file checking.
     """
     print(f"Loading COCO dataset from {images_folder} and {annotations_folder}...")
 
@@ -28,20 +23,21 @@ def load_coco_dataset(images_folder, annotations_folder, annotation_file="captio
     with open(annotations_path, 'r') as f:
         annotations_data = json.load(f)
 
+    available_files = set(os.listdir(images_folder))
+
     image_paths = []
     captions = []
 
-    for annotation in annotations_data['annotations']:
-        img_id = annotation['image_id']
-        img_name = f'{int(img_id):012d}.jpg'
-        img_path = os.path.join(images_folder, img_name)
-
-        if os.path.exists(img_path):
+    for annotation in tqdm(annotations_data['annotations'], desc="Matching image files", unit="annotation"):
+        img_name = f'{int(annotation["image_id"]):012d}.jpg'
+        if img_name in available_files:
+            img_path = os.path.join(images_folder, img_name)
             image_paths.append(img_path)
             captions.append(annotation['caption'])
 
-    print(f"Loaded {len(image_paths)} images with captions")
+    print(f"Loaded {len(image_paths)} images with captions.")
     return image_paths, captions
+
 
 
 def create_tokenizer(captions, num_words=10000):
@@ -206,3 +202,33 @@ def split_dataset(image_paths, captions, train_split=0.8, val_split=0.1):
     return (train_img_paths, train_captions,
             val_img_paths, val_captions,
             test_img_paths, test_captions)
+
+def load_and_preprocess_single_example(img_path, caption, tokenizer, max_length=30):
+    """
+    Combine image and caption preprocessing for dataset construction.
+    """
+    img = preprocess_image_path(img_path, target_size=(180, 180))
+    cap_input = preprocess_caption(caption, tokenizer, max_length)
+    cap_target = np.roll(cap_input, -1)
+    cap_target[-1] = 0  # padding or end token
+
+    return (img, cap_input), cap_target
+
+def create_full_tf_dataset(image_paths, captions, tokenizer, max_length=30):
+    """
+    Create a unified tf.data.Dataset with tqdm progress bar.
+    """
+    def generator():
+        for img_path, caption in tqdm(zip(image_paths, captions), total=len(image_paths), desc="Processing samples"):
+            yield load_and_preprocess_single_example(img_path, caption, tokenizer, max_length)
+
+    output_signature = (
+        (
+            tf.TensorSpec(shape=(180, 180, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(max_length,), dtype=tf.int32)
+        ),
+        tf.TensorSpec(shape=(max_length,), dtype=tf.int32)
+    )
+
+    dataset = tf.data.Dataset.from_generator(generator, output_signature=output_signature)
+    return dataset
