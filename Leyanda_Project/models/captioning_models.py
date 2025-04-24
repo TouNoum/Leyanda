@@ -13,6 +13,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add, Lambda, Concatenate, Add, Multiply
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
+from tensorflow.keras.layers import GRU
+
 
 
 def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=512, fine_tune_layers=30):
@@ -279,3 +281,39 @@ def plot_training_history(history):
 
     plt.tight_layout()
     plt.show()
+
+
+def create_caption_decoder_gru(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
+    """
+    Create a decoder model that generates captions using GRU instead of LSTM.
+    Parameters:
+    - vocab_size : Size of the vocabulary
+    - max_length : Maximum length of captions
+    - embedding_dim : Dimension of the word embeddings
+    - units : Number of GRU units
+    - dropout_rate : Dropout rate for regularization
+    Returns:
+    - decoder : GRU-based decoder model
+    """
+
+    # Inputs
+    image_features = Input(shape=(embedding_dim,), name="image_features")
+    caption_input = Input(shape=(max_length,), name="caption_input")
+
+    # Word embeddings
+    embedding = Embedding(input_dim=vocab_size,
+                          output_dim=embedding_dim,
+                          mask_zero=True,
+                          name="word_embedding")(caption_input)
+
+    # Initial hidden state from image features
+    h_initial = Dense(units, activation='relu', name='h_initializer')(image_features)
+
+    # GRU decoder
+    gru_output = GRU(units, return_sequences=True, name="gru_layer")(embedding, initial_state=h_initial)
+    dropout = Dropout(dropout_rate)(gru_output)
+    output = Dense(vocab_size, activation='softmax', name="output_layer")(dropout)
+
+    # Final model
+    decoder = Model(inputs=[image_features, caption_input], outputs=output, name="gru_decoder")
+    return decoder
