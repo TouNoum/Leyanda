@@ -170,17 +170,18 @@ def attention_module(decoder_output, image_features):
     return context_vector
 
 
-def create_captioning_model(encoder, decoder, max_length):
+def create_captioning_model(encoder, decoder, max_length, image_size):
     """
     Create the complete image captioning model by connecting encoder and decoder.
     Parameters:
     - encoder : Encoder model
     - decoder : Decoder model
     - max_length : Maximum length of captions
+    - image_size : Size of the input images
     Returns:
     - captioning_model : Complete model for image captioning
     """
-    image_input = Input(shape=(180, 180, 3), name='image_input')
+    image_input = Input(shape=(image_size, image_size, 3), name='image_input')
     caption_input = Input(shape=(max_length,), name='caption_input')
     image_features = encoder(image_input)
     caption_output = decoder([image_features, caption_input])
