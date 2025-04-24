@@ -10,12 +10,12 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add, Lambda, Concatenate, Add, Multiply
+from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add, Lambda, Concatenate, Add, Multiply, Activation
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
 
 
-def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=512, fine_tune_layers=30):
+def create_image_encoder_basic(input_shape=(180, 180, 3), embedding_dim=512, fine_tune_layers=30):
     """
     Create an image encoder based on InceptionV3 pre-trained model with fine-tuning capability.
     Parameters:
@@ -41,6 +41,28 @@ def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=512, fine_tune
 
     return encoder
 
+
+def create_image_encoder_spatial(input_shape=(180, 180, 3), fine_tune_layers=30):
+    """
+    Create an image encoder that preserves spatial information for attention.
+    Parameters:
+    - input_shape : Shape of the input images
+    - fine_tune_layers : Number of layers to fine-tune from the end
+    Returns:
+    - encoder : Encoder model that outputs spatial features
+    """
+    base_model = InceptionV3(weights='imagenet', include_top=False, input_shape=input_shape)
+
+    for layer in base_model.layers:
+        layer.trainable = False
+
+    if fine_tune_layers > 0:
+        for layer in base_model.layers[-fine_tune_layers:]:
+            layer.trainable = True
+
+    encoder = Model(inputs=base_model.input, outputs=base_model.output)
+
+    return encoder
 
 def create_caption_decoder_basic(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
     """
@@ -70,32 +92,83 @@ def create_caption_decoder_basic(vocab_size, max_length, embedding_dim, units=25
     return decoder
 
 
-def create_caption_decoder_with_attention(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.5):
+def create_caption_decoder_with_spatial_attention(vocab_size, max_length, embedding_dim=256, units=512, dropout_rate=0.5):
     """
-    Create a decoder model with a simplified attention mechanism.
+    Create a decoder with attention over spatial features of the image.
+    Parameters:
+    - vocab_size : Size of the vocabulary
+    - max_length : Maximum length of captions
+    - embedding_dim : Dimension of the word embeddings
+    - units : Number of LSTM units
+    - dropout_rate : Dropout rate for regularization
+    Returns:
+    - decoder : Decoder model with spatial attention mechanism
     """
-    image_features = Input(shape=(embedding_dim,))
+    image_features = Input(shape=(5, 5, 2048))
     caption_input = Input(shape=(max_length,))
 
-    image_features_expanded = Lambda(lambda x: tf.expand_dims(x, 1))(image_features)
-    image_features_repeated = Lambda(lambda x: tf.repeat(x, repeats=max_length, axis=1))(image_features_expanded)
+    image_features_flat = Lambda(
+        lambda x: tf.reshape(x, [-1, 5*5, 2048])
+    )(image_features)
 
-    embedding = Embedding(input_dim=vocab_size,
-                          output_dim=embedding_dim,
-                          mask_zero=True)(caption_input)
+    image_features_proj = Dense(embedding_dim, activation='relu')(image_features_flat)
 
-    lstm_out = LSTM(units, return_sequences=True, dropout=dropout_rate)(embedding)
+    word_embedding = Embedding(
+        input_dim=vocab_size,
+        output_dim=embedding_dim,
+        mask_zero=True
+    )(caption_input)
 
-    combined = Concatenate(axis=-1)([lstm_out, image_features_repeated])
-    attention = Dense(units, activation='tanh')(combined)
-    attention = Dense(1, activation='softmax')(attention)
-    weighted_sum = Multiply()([lstm_out, attention])
+    lstm = LSTM(units, return_sequences=True, dropout=dropout_rate)
+    img_mean = Lambda(lambda x: tf.reduce_mean(x, axis=1))(image_features_proj)
+    h_initial = Dense(units, activation='relu')(img_mean)
+    c_initial = Dense(units, activation='relu')(img_mean)
+    lstm_out = lstm(word_embedding, initial_state=[h_initial, c_initial])
 
-    dropout_out = Dropout(dropout_rate)(weighted_sum)
-    output = Dense(vocab_size, activation='softmax')(dropout_out)
+    # Attention for each time step
+    outputs = []
 
-    decoder = Model(inputs=[image_features, caption_input], outputs=output)
+    for t in range(max_length):
+        context_vector = attention_module(
+            lstm_out[:, t:t+1, :],
+            image_features_proj
+        )
+
+        lstm_with_context = Concatenate()([lstm_out[:, t:t+1, :], context_vector])
+        output = Dense(vocab_size, activation='softmax')(lstm_with_context)
+        outputs.append(output)
+
+    stacked_outputs = Lambda(lambda x: tf.stack(x, axis=1))(outputs)
+
+    decoder = Model(inputs=[image_features, caption_input], outputs=stacked_outputs)
     return decoder
+
+
+def attention_module(decoder_output, image_features):
+    """
+    Bahdanau attention module that computes attention weights.
+    Parameters:
+    - decoder_output : Current decoder state (LSTM output)
+    - image_features : Encoded image features with spatial information
+    Returns:
+    - context_vector : Weighted sum of image features
+    """
+    decoder_expanded = Lambda(
+        lambda x: tf.repeat(x, repeats=tf.shape(image_features)[1], axis=1)
+    )(decoder_output)
+
+    combined = Concatenate(axis=-1)([decoder_expanded, image_features])
+
+    attention_scores = Dense(1, use_bias=False)(
+        Dense(512, activation='tanh')(combined)
+    )
+
+    attention_weights = Activation('softmax')(attention_scores)
+    context_vector = Multiply()([image_features, attention_weights])
+    context_vector = Lambda(lambda x: tf.reduce_sum(x, axis=1, keepdims=True))(context_vector)
+
+    return context_vector
+
 
 def create_captioning_model(encoder, decoder, max_length):
     """
@@ -118,6 +191,31 @@ def create_captioning_model(encoder, decoder, max_length):
     )
 
     return captioning_model
+
+
+def create_captioning_model_spatial(encoder, decoder, max_length):
+    """
+    Create the complete image captioning model using spatial attention.
+    Parameters:
+    - encoder : Encoder model that outputs spatial features
+    - decoder : Decoder model with spatial attention
+    - max_length : Maximum length of captions
+    Returns:
+    - captioning_model : Complete model for image captioning
+    """
+    image_input = Input(shape=(180, 180, 3), name='image_input')
+    caption_input = Input(shape=(max_length,), name='caption_input')
+    image_features = encoder(image_input)
+    caption_output = decoder([image_features, caption_input])
+
+    captioning_model = Model(
+        inputs=[image_input, caption_input],
+        outputs=caption_output,
+        name='spatial_attention_captioning_model'
+    )
+
+    return captioning_model
+
 
 def generate_caption_basic(image_path, model, tokenizer, max_length=30):
     """
