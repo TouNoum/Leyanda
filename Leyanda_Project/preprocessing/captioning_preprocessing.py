@@ -54,6 +54,7 @@ def create_tokenizer(captions, num_words=10000):
     - tokenizer : Fitted tokenizer
     - vocab_size : Size of the vocabulary
     """
+    import pickle
     print("Creating and fitting tokenizer...")
 
     tokenizer = Tokenizer(
@@ -63,7 +64,6 @@ def create_tokenizer(captions, num_words=10000):
     )
 
     processed_captions = ['<start> ' + caption + ' <end>' for caption in captions]
-
     tokenizer.fit_on_texts(processed_captions)
 
     word_index = tokenizer.word_index
@@ -74,6 +74,11 @@ def create_tokenizer(captions, num_words=10000):
 
     vocab_size = min(num_words, len(tokenizer.word_index) + 1)
     print(f"Vocabulary size: {vocab_size}")
+
+    tokenizer_path = "/tf/projet/Leyanda_Project/models/saved/tokenizer_captioning.pkl"
+    with open(tokenizer_path, "wb") as f:
+        pickle.dump(tokenizer, f)
+    print(f"Tokenizer saved at {tokenizer_path}")
 
     return tokenizer, vocab_size
 
