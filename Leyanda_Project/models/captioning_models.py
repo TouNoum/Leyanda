@@ -10,17 +10,20 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
+from tensorflow.keras.layers import Input, Dense, LSTM, Embedding, Dropout, add, Lambda, Concatenate, Add, Multiply
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from Leyanda_Project.preprocessing.captioning_preprocessing import preprocess_image_path
+from tensorflow.keras.layers import GRU
 
 
-def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=256):
+
+def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=512, fine_tune_layers=30):
     """
-    Create an image encoder based on InceptionV3 pre-trained model.
+    Create an image encoder based on InceptionV3 pre-trained model with fine-tuning capability.
     Parameters:
-    - input_shape : Shape of the input images
+    - input_shape: Shape of input image
     - embedding_dim : Dimension of the output embedding
+    - fine_tune_layers : Number of layers to fine-tune from the end
     Returns:
     - encoder : Encoder model
     """
@@ -28,6 +31,10 @@ def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=256):
 
     for layer in base_model.layers:
         layer.trainable = False
+
+    if fine_tune_layers > 0:
+        for layer in base_model.layers[-fine_tune_layers:]:
+            layer.trainable = True
 
     output = base_model.output
     output = tf.keras.layers.GlobalAveragePooling2D()(output)
@@ -37,7 +44,7 @@ def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=256):
     return encoder
 
 
-def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
+def create_caption_decoder_basic(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
     """
     Create a decoder model that generates captions from image features.
     Parameters:
@@ -65,17 +72,45 @@ def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256, dro
     return decoder
 
 
-def create_captioning_model(encoder, decoder, max_length):
+def create_caption_decoder_with_attention(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.5):
+    """
+    Create a decoder model with a simplified attention mechanism.
+    """
+    image_features = Input(shape=(embedding_dim,))
+    caption_input = Input(shape=(max_length,))
+
+    image_features_expanded = Lambda(lambda x: tf.expand_dims(x, 1))(image_features)
+    image_features_repeated = Lambda(lambda x: tf.repeat(x, repeats=max_length, axis=1))(image_features_expanded)
+
+    embedding = Embedding(input_dim=vocab_size,
+                          output_dim=embedding_dim,
+                          mask_zero=True)(caption_input)
+
+    lstm_out = LSTM(units, return_sequences=True, dropout=dropout_rate)(embedding)
+
+    combined = Concatenate(axis=-1)([lstm_out, image_features_repeated])
+    attention = Dense(units, activation='tanh')(combined)
+    attention = Dense(1, activation='softmax')(attention)
+    weighted_sum = Multiply()([lstm_out, attention])
+
+    dropout_out = Dropout(dropout_rate)(weighted_sum)
+    output = Dense(vocab_size, activation='softmax')(dropout_out)
+
+    decoder = Model(inputs=[image_features, caption_input], outputs=output)
+    return decoder
+
+def create_captioning_model(encoder, decoder, max_length, image_size):
     """
     Create the complete image captioning model by connecting encoder and decoder.
     Parameters:
     - encoder : Encoder model
     - decoder : Decoder model
     - max_length : Maximum length of captions
+    - image_size : Image size
     Returns:
     - captioning_model : Complete model for image captioning
     """
-    image_input = Input(shape=(180, 180, 3), name='image_input')
+    image_input = Input(shape=(image_size, image_size, 3), name='image_input')
     caption_input = Input(shape=(max_length,), name='caption_input')
     image_features = encoder(image_input)
     caption_output = decoder([image_features, caption_input])
@@ -87,7 +122,7 @@ def create_captioning_model(encoder, decoder, max_length):
 
     return captioning_model
 
-def generate_caption(image_path, model, tokenizer, max_length):
+def generate_caption_basic(image_path, model, tokenizer, max_length=30):
     """
     Generate caption for an image using the trained model directly.
     Parameters:
@@ -125,6 +160,61 @@ def generate_caption(image_path, model, tokenizer, max_length):
 
     return ' '.join(caption)
 
+def generate_caption_diverse(image_path, model, tokenizer, max_length=30, temperature=0.4):
+    """
+    Generate caption with temperature parameter to increase diversity.
+    Parameters:
+    - image_path : Path to the image
+    - model : Trained model
+    - tokenizer : Tokenizer used for captions
+    - max_length : Maximum length of captions
+    - temperature : Temperature parameter for sampling, by default 0.7
+    Returns:
+    - caption : Generated caption for the image
+    """
+    img = preprocess_image_path(image_path)
+    img = np.expand_dims(img, axis=0)
+    caption = ['<start>']
+
+    max_iterations = max_length * 2
+    iteration = 0
+
+    for i in range(max_length - 1):
+        if iteration >= max_iterations:
+            break
+
+        iteration += 1
+        sequence = tokenizer.texts_to_sequences([' '.join(caption)])[0]
+        sequence = pad_sequences([sequence], maxlen=max_length, padding='post')[0]
+        sequence = np.expand_dims(sequence, axis=0)
+
+        pred = model.predict([img, sequence], verbose=0)
+
+        if temperature > 0:
+            logits = np.log(pred[0, min(i, pred.shape[1]-1), :]) / temperature
+            exp_logits = np.exp(logits - np.max(logits))  # Subtract max for numerical stability
+            probs = exp_logits / np.sum(exp_logits)
+            pred_idx = np.random.choice(len(probs), p=probs)
+        else:
+            pred_idx = np.argmax(pred[0, min(i, pred.shape[1]-1), :])
+
+        if pred_idx == tokenizer.word_index.get('<end>', 1) or pred_idx == 0:
+            break
+
+        word_found = False
+        for word, idx in tokenizer.word_index.items():
+            if idx == pred_idx:
+                caption.append(word)
+                word_found = True
+                break
+
+        if not word_found:
+            break
+
+    caption = [word for word in caption if word not in ['<start>', '<end>']]
+
+    return ' '.join(caption)
+
 
 def basic_loss(real, pred):
     """
@@ -143,18 +233,26 @@ def basic_loss(real, pred):
     return tf.reduce_mean(loss_)
 
 
-def semantic_loss(real, pred):
+def regularized_semantic_loss(real, pred):
     """
-    Semantic loss function that penalizes the model for generating captions with low semantic meaning.
+    Semantic loss function with regularization to combat overfitting.
     Parameters:
     - real : Actual captions
     - pred : Predicted captions
     Returns:
     - tf.Tensor : Computed loss
     """
-    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(real, pred)
-    semantic_bonus = tf.reduce_mean(tf.nn.softmax(pred), axis=-1)
-    return cross_entropy - 0.1 * semantic_bonus
+    mask = tf.math.logical_not(tf.math.equal(real, 0))
+    loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
+    loss_ = loss_object(real, pred)
+    mask = tf.cast(mask, dtype=loss_.dtype)
+    loss_ *= mask
+
+    semantic_boost = 0.05 * tf.reduce_mean(tf.math.reduce_std(pred, axis=-1))
+
+    l2_loss = 0.001 * tf.reduce_sum(tf.square(pred))
+
+    return tf.reduce_mean(loss_) - semantic_boost + l2_loss
 
 
 def plot_training_history(history):
@@ -183,3 +281,39 @@ def plot_training_history(history):
 
     plt.tight_layout()
     plt.show()
+
+
+def create_caption_decoder_gru(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
+    """
+    Create a decoder model that generates captions using GRU instead of LSTM.
+    Parameters:
+    - vocab_size : Size of the vocabulary
+    - max_length : Maximum length of captions
+    - embedding_dim : Dimension of the word embeddings
+    - units : Number of GRU units
+    - dropout_rate : Dropout rate for regularization
+    Returns:
+    - decoder : GRU-based decoder model
+    """
+
+    # Inputs
+    image_features = Input(shape=(embedding_dim,), name="image_features")
+    caption_input = Input(shape=(max_length,), name="caption_input")
+
+    # Word embeddings
+    embedding = Embedding(input_dim=vocab_size,
+                          output_dim=embedding_dim,
+                          mask_zero=True,
+                          name="word_embedding")(caption_input)
+
+    # Initial hidden state from image features
+    h_initial = Dense(units, activation='relu', name='h_initializer')(image_features)
+
+    # GRU decoder
+    gru_output = GRU(units, return_sequences=True, name="gru_layer")(embedding, initial_state=h_initial)
+    dropout = Dropout(dropout_rate)(gru_output)
+    output = Dense(vocab_size, activation='softmax', name="output_layer")(dropout)
+
+    # Final model
+    decoder = Model(inputs=[image_features, caption_input], outputs=output, name="gru_decoder")
+    return decoder

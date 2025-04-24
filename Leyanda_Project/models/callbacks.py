@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import ConfusionMatrixDisplay
 from collections import Counter
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from Leyanda_Project.models.captioning_models import generate_caption
+from Leyanda_Project.models.captioning_models import generate_caption_basic
 
 
 class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
@@ -141,7 +141,7 @@ class BLEUCallback(tf.keras.callbacks.Callback):
         predictions = []
 
         for img_path in self.val_images:
-            pred = generate_caption(img_path, self.model, self.tokenizer, self.max_length)
+            pred = generate_caption_basic(img_path, self.model, self.tokenizer, self.max_length)
             predictions.append(pred)
 
         bleu = calculate_bleu(self.val_captions, predictions)

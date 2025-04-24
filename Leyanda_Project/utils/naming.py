@@ -1,3 +1,5 @@
+import datetime
+
 # Generate a standardized name for ML models
 def generate_model_name(project_name, model_arch, target_class=None, transfer_learning=False, epoch=None, batch_size=None, custom_tag=None, class_weight=False, train_transfer_model=False):
     """
@@ -57,4 +59,45 @@ def get_model_path(model_name, models_folder):
     - Full path to the model file
     """
     return f"{models_folder}/{model_name}.keras"
-#%%
+
+
+def generate_captioning_model_name(
+    project_name,
+    attention,
+    loss_type,
+    encoder_fine_tune_layers,
+    reduce_lr_on_plateau
+):
+    """
+    Generate a standardized name for image captioning models.
+    """
+    components = [project_name, "caption"]
+
+    if attention:
+        components.append("attn")
+    else:
+        components.append("basic")
+
+    if loss_type:
+        if loss_type == "basic_loss":
+            components.append("basic_loss")
+        elif loss_type == "semantic_loss":
+            components.append("sem_loss")
+        elif loss_type == "regularized_semantic_loss":
+            components.append("reg_sem_loss")
+        elif loss_type == "loss_with_label_smoothing":
+            components.append("smooth_loss")
+
+    if encoder_fine_tune_layers > 0:
+        components.append(f"finetune{encoder_fine_tune_layers}")
+
+    if reduce_lr_on_plateau:
+        components.append("reduce_lr")
+
+    model_name = "_".join(components)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    model_name = f"{model_name}_{timestamp}"
+
+    print(f"Generated model name: {model_name}")
+
+    return model_name
