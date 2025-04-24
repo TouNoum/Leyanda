@@ -6,8 +6,8 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Input
 from tensorflow.keras.models import Model
 
-
-def load_clear_images(raw_data_path, img_height=180, img_width=180, test_split=0.1):
+# Load the /path images
+def load_clear_images(raw_data_paths, img_height=180, img_width=180, test_split=0.1):
     """
     Assemble a dataset from the Dataset folder
     - raw_data_path: Path to the raw data folder.
@@ -20,13 +20,17 @@ def load_clear_images(raw_data_path, img_height=180, img_width=180, test_split=0
     """
     print(f"\nLoading images from {raw_data_path}...")
     images = []
-    for filename in os.listdir(raw_data_path):
-        if filename.endswith(".jpg") or filename.endswith(".png"):
-            img = Image.open(os.path.join(raw_data_path, filename))
-            img = img.resize((img_height, img_width))
-            images.append(np.array(img))
-            images_train = np.array(images[:int(len(images) * (1 - test_split))])
-            images_test = np.array(images[int(len(images) * (1 - test_split)):])
+    for raw_data_path in raw_data_paths:
+        for filename in os.listdir(raw_data_path):
+            if filename.endswith(".jpg") or filename.endswith(".png"):
+                img = Image.open(os.path.join(raw_data_path, filename))
+                img = img.resize((img_height, img_width))
+                images.append(np.array(img))
+                images_train = np.array(images[:int(len(images) * (1 - test_split))])
+                images_test = np.array(images[int(len(images) * (1 - test_split)):])
+
+    if not test_split :
+        return images_train
 
     return images_train, images_test
 
