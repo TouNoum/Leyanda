@@ -19,7 +19,7 @@ def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=512, fine_tune
     """
     Create an image encoder based on InceptionV3 pre-trained model with fine-tuning capability.
     Parameters:
-    - input_shape : Shape of the input images
+    - input_shape: Shape of input image
     - embedding_dim : Dimension of the output embedding
     - fine_tune_layers : Number of layers to fine-tune from the end
     Returns:
@@ -97,17 +97,18 @@ def create_caption_decoder_with_attention(vocab_size, max_length, embedding_dim,
     decoder = Model(inputs=[image_features, caption_input], outputs=output)
     return decoder
 
-def create_captioning_model(encoder, decoder, max_length):
+def create_captioning_model(encoder, decoder, max_length, image_size):
     """
     Create the complete image captioning model by connecting encoder and decoder.
     Parameters:
     - encoder : Encoder model
     - decoder : Decoder model
     - max_length : Maximum length of captions
+    - image_size : Image size
     Returns:
     - captioning_model : Complete model for image captioning
     """
-    image_input = Input(shape=(180, 180, 3), name='image_input')
+    image_input = Input(shape=(image_size, image_size, 3), name='image_input')
     caption_input = Input(shape=(max_length,), name='caption_input')
     image_features = encoder(image_input)
     caption_output = decoder([image_features, caption_input])
