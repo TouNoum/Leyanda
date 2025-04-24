@@ -230,20 +230,6 @@ def basic_loss(real, pred):
     return tf.reduce_mean(loss_)
 
 
-def semantic_loss(real, pred):
-    """
-    Semantic loss function that penalizes the model for generating captions with low semantic meaning.
-    Parameters:
-    - real : Actual captions
-    - pred : Predicted captions
-    Returns:
-    - tf.Tensor : Computed loss
-    """
-    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(real, pred)
-    semantic_bonus = tf.reduce_mean(tf.nn.softmax(pred), axis=-1)
-    return cross_entropy - 0.1 * semantic_bonus
-
-
 def regularized_semantic_loss(real, pred):
     """
     Semantic loss function with regularization to combat overfitting.
@@ -253,7 +239,6 @@ def regularized_semantic_loss(real, pred):
     Returns:
     - tf.Tensor : Computed loss
     """
-    # Base loss component
     mask = tf.math.logical_not(tf.math.equal(real, 0))
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
     loss_ = loss_object(real, pred)
@@ -265,32 +250,6 @@ def regularized_semantic_loss(real, pred):
     l2_loss = 0.001 * tf.reduce_sum(tf.square(pred))
 
     return tf.reduce_mean(loss_) - semantic_boost + l2_loss
-
-
-def loss_with_label_smoothing(real, pred, smoothing=0.1):
-    """
-    Loss function with label smoothing.
-    Parameters:
-    - real : Actual captions
-    - pred : Predicted captions
-    - smoothing : Smoothing factor, by default 0.1
-    Returns:
-    - tf.Tensor : Computed loss
-    """
-    mask = tf.math.logical_not(tf.math.equal(real, 0))
-    mask = tf.cast(mask, dtype=tf.float32)
-
-    # One-hot encoding with smoothing
-    n_classes = tf.shape(pred)[-1]
-    one_hot = tf.one_hot(real, n_classes)
-    smooth_one_hot = one_hot * (1 - smoothing) + smoothing / n_classes
-
-    loss = tf.keras.losses.categorical_crossentropy(
-        smooth_one_hot, pred, from_logits=False, axis=-1
-    )
-
-    loss *= mask
-    return tf.reduce_sum(loss) / tf.reduce_sum(mask)
 
 
 def plot_training_history(history):
