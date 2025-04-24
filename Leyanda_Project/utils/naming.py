@@ -63,9 +63,9 @@ def get_model_path(model_name, models_folder):
 
 def generate_captioning_model_name(
     project_name,
+    is_gru,
     attention,
-    loss_type,
-    encoder_fine_tune_layers,
+    semantic_loss,
     reduce_lr_on_plateau
 ):
     """
@@ -73,23 +73,20 @@ def generate_captioning_model_name(
     """
     components = [project_name, "caption"]
 
-    if attention:
+    if is_gru:
+        components.append("gru")
+    else:
+        components.append("lstm")
+
+    if attention and not is_gru:
         components.append("attn")
     else:
         components.append("basic")
 
-    if loss_type:
-        if loss_type == "basic_loss":
-            components.append("basic_loss")
-        elif loss_type == "semantic_loss":
-            components.append("sem_loss")
-        elif loss_type == "regularized_semantic_loss":
-            components.append("reg_sem_loss")
-        elif loss_type == "loss_with_label_smoothing":
-            components.append("smooth_loss")
-
-    if encoder_fine_tune_layers > 0:
-        components.append(f"finetune{encoder_fine_tune_layers}")
+    if semantic_loss:
+        components.append("sem_loss")
+    else:
+        components.append("basic_loss")
 
     if reduce_lr_on_plateau:
         components.append("reduce_lr")
