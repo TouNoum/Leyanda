@@ -5,6 +5,9 @@ Dataset*
 __pycache__/
 *.py[cod]
 *$py.class
+Leyanda_Project/models/saved/*
+Leyanda_Project/checkpoints/*
+Leyanda_Project/logs/*
 
 # C extensions
 *.so
