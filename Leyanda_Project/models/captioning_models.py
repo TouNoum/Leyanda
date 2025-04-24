@@ -37,7 +37,7 @@ def create_image_encoder(input_shape=(180, 180, 3), embedding_dim=256):
     return encoder
 
 
-def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
+def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256, dropout_rate=0.3):
     """
     Create a decoder model that generates captions from image features.
     Parameters:
@@ -58,7 +58,7 @@ def create_caption_decoder(vocab_size, max_length, embedding_dim, units=256):
     c_initial = Dense(units, activation='relu', name='c_initializer')(image_features)
     lstm = LSTM(units, return_sequences=True)(embedding, initial_state=[h_initial, c_initial])
 
-    dropout = Dropout(0.3)(lstm)
+    dropout = Dropout(dropout_rate)(lstm)
     output = Dense(vocab_size, activation='softmax')(dropout)
     decoder = Model(inputs=[image_features, caption_input], outputs=output)
 
