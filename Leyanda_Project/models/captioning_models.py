@@ -125,7 +125,6 @@ def create_caption_decoder_with_spatial_attention(vocab_size, max_length, embedd
     c_initial = Dense(units, activation='relu')(img_mean)
     lstm_out = lstm(word_embedding, initial_state=[h_initial, c_initial])
 
-    # Attention for each time step
     outputs = []
 
     for t in range(max_length):
@@ -329,41 +328,32 @@ def basic_loss(real, pred):
     return tf.reduce_mean(loss_)
 
 
-def semantic_loss(real, pred):
+def regularized_semantic_loss(real, pred, alpha=0.1, beta=0.05):
     """
-    Semantic loss function that penalizes the model for generating captions with low semantic meaning.
-    Parameters:
-    - real : Actual captions
-    - pred : Predicted captions
-    Returns:
-    - tf.Tensor : Computed loss
-    """
-    cross_entropy = tf.keras.losses.sparse_categorical_crossentropy(real, pred)
-    semantic_bonus = tf.reduce_mean(tf.nn.softmax(pred), axis=-1)
-    return cross_entropy - 0.1 * semantic_bonus
+    Enhanced semantic loss with balanced regularization components.
 
-
-def regularized_semantic_loss(real, pred):
-    """
-    Semantic loss function with regularization to combat overfitting.
     Parameters:
-    - real : Actual captions
-    - pred : Predicted captions
+    - real: Actual captions
+    - pred: Predicted captions
+    - alpha: Weight for semantic boost
+    - beta: Weight for L2 regularization
+
     Returns:
-    - tf.Tensor : Computed loss
+    - tf.Tensor: Computed loss
     """
-    # Base loss component
     mask = tf.math.logical_not(tf.math.equal(real, 0))
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
     loss_ = loss_object(real, pred)
     mask = tf.cast(mask, dtype=loss_.dtype)
     loss_ *= mask
+    base_loss = tf.reduce_mean(loss_)
 
-    semantic_boost = 0.05 * tf.reduce_mean(tf.math.reduce_std(pred, axis=-1))
+    entropy = -tf.reduce_sum(pred * tf.math.log(tf.clip_by_value(pred, 1e-10, 1.0)), axis=-1)
+    semantic_boost = alpha * tf.reduce_mean(entropy)
 
-    l2_loss = 0.001 * tf.reduce_sum(tf.square(pred))
+    l2_loss = beta * tf.reduce_sum(tf.square(pred))
 
-    return tf.reduce_mean(loss_) - semantic_boost + l2_loss
+    return base_loss - semantic_boost + l2_loss
 
 
 def loss_with_label_smoothing(real, pred, smoothing=0.1):
