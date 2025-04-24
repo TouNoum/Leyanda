@@ -155,26 +155,3 @@ class BLEUCallback(tf.keras.callbacks.Callback):
                 self.model_save_path,
                 f"best_bleu_model_{epoch+1}.keras"
             ))
-
-
-class WarmUpLearningRateScheduler(tf.keras.callbacks.Callback):
-    """
-    Callback that implements a learning rate warm-up strategy.
-
-    During the first few epochs, the learning rate gradually increases from
-    a small value to the target learning rate. This helps stabilize training
-    in the early phases.
-    """
-    def __init__(self, initial_lr, target_lr, warmup_epochs, verbose=0):
-        super(WarmUpLearningRateScheduler, self).__init__()
-        self.initial_lr = initial_lr
-        self.target_lr = target_lr
-        self.warmup_epochs = warmup_epochs
-        self.verbose = verbose
-
-    def on_epoch_begin(self, epoch, logs=None):
-        if epoch < self.warmup_epochs:
-            lr = self.initial_lr + (self.target_lr - self.initial_lr) * (epoch / self.warmup_epochs)
-            tf.keras.backend.set_value(self.model.optimizer.learning_rate, lr)
-            if self.verbose > 0:
-                print(f'\nEpoch {epoch+1}: WarmUp learning rate set to {lr:.6f}')
